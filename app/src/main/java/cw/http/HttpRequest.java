@@ -21,10 +21,6 @@ public class HttpRequest {
         HttpRequest request = new HttpRequest();
 
         String[] lines = text.replace("\r", "").split("\n");
-//        String[] lines = text.split("\n");
-//        for (int i = 0; i < lines.length; i++) {
-//            lines[i].replace("\r", "");
-//        }
 
         String startLine = lines[0];
         String[] startLineParts = startLine.split(" ");
@@ -45,8 +41,8 @@ public class HttpRequest {
                 // read header
                 String[] keyValue = line.split(": ");
                 request.getHeaders().put(
-                    keyValue[0],
-                    keyValue[1]
+                    keyValue[0].strip(),
+                    keyValue[1].strip()
                 );
             }
         }

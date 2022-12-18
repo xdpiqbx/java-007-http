@@ -7,30 +7,37 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 public class App {
-    public static void main(String[] args) throws IOException, InterruptedException {
-        ServerSocket server = new ServerSocket(10000);
-        while(true){
-            System.out.println("Wait for connection...");
-            Socket connection = server.accept();
-            System.out.println("Connected");
-
-            // connection.getInputStream();
-            // connection.getOutputStream();
-
-            InputStream is = connection.getInputStream();
-
-            String requestText = readAll(is);
-            HttpRequest request = HttpRequest.of(requestText);
-
-            System.out.println("################# START #################");
-            System.out.println(requestText);
-            System.out.println("****************** END ******************");
-            System.out.println("-----------------------------------------");
-            System.out.println("################# START #################");
-            System.out.println(request);
-            System.out.println("****************** END ******************");
+    public static void main(String[] args){
+        // localhost:10000
+        try(ServerSocket server = new ServerSocket(10000)){
+            while(true){
+                System.out.println("Wait for connection...");
+                Socket connection = server.accept();
+                System.out.println("Connected");
+                try(InputStream is = connection.getInputStream()){
+                    final String requestText = readAll(is);
+                    if(!Objects.equals(requestText.strip(), "")){
+                        HttpRequest request = HttpRequest.of(requestText);
+                        // System.out.println(requestText);
+                        // System.out.println(request);
+                        HttpResponse response = new HttpResponse();
+                        response.setStatusCode(200);
+                        response.setStatusText("Ok");
+                        response.setBody("<h1>Hello!</h1>");
+                        String respText = response.toString();
+                        byte[] responseBytes = respText.getBytes(StandardCharsets.UTF_8);
+                        connection.getOutputStream().write(responseBytes);
+                    }
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
