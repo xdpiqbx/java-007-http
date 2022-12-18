@@ -3,40 +3,60 @@
  */
 package cw.http;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class App {
     public static void main(String[] args){
         // localhost:10000
         try(ServerSocket server = new ServerSocket(10000)){
+            ExecutorService executor = Executors.newFixedThreadPool(10);
             while(true){
                 System.out.println("Wait for connection...");
                 Socket connection = server.accept();
                 System.out.println("Connected");
-                try(InputStream is = connection.getInputStream()){
-                    final String requestText = readAll(is);
-                    if(!Objects.equals(requestText.strip(), "")){
-                        HttpRequest request = HttpRequest.of(requestText);
-                        // System.out.println(requestText);
-                        // System.out.println(request);
-                        HttpResponse response = new HttpResponse();
-                        response.setStatusCode(200);
-                        response.setStatusText("Ok");
-                        response.setBody("<h1>Hello!</h1>");
-                        String respText = response.toString();
-                        byte[] responseBytes = respText.getBytes(StandardCharsets.UTF_8);
-                        connection.getOutputStream().write(responseBytes);
-                    }
-                } catch (IOException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                executor.submit(()->handleConnection(connection));
             }
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void handleConnection(Socket connection) {
+        try(InputStream is = connection.getInputStream()){
+            final String requestText = readAll(is);
+            if(!Objects.equals(requestText.strip(), "")){
+                HttpRequest request = HttpRequest.of(requestText);
+
+                HttpResponse response = new HttpResponse();
+                response.setStatusCode(200);
+                response.setStatusText("Ok");
+
+                System.out.println("request.getPath() = " + request.getPath());
+
+                try{
+                    String content = HtmlPages.getFileByPath(request.getPath());
+                    response.setBody(content);
+                }catch (FileNotFoundException e){
+                    response.setStatusCode(404);
+                    response.setStatusText("Not found");
+                    response.setBody("<h1>Not found =(</h1>");
+                }
+
+//                        response.setBody("<h1>Hello!</h1>");
+
+                String respText = response.toString();
+                byte[] responseBytes = respText.getBytes(StandardCharsets.UTF_8);
+                connection.getOutputStream().write(responseBytes);
+            }
+        } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }

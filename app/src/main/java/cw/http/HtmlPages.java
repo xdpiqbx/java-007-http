@@ -15,7 +15,7 @@ public class HtmlPages {
     }
 
     public static String readHtmlFile(String filename) throws FileNotFoundException {
-        File file = new File("web/" + filename);
+        File file = new File("./app/web/" + filename);
         StringJoiner result = new StringJoiner("\n");
         try(Scanner scanner = new Scanner(file)){
             while(scanner.hasNextLine()){
